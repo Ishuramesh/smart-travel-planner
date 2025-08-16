@@ -1,0 +1,104 @@
+import heapq
+
+class City:
+    def __init__(self, name):
+        self.name = name
+        self.connections = {}  # neighbor: cost
+        self.hotels = []
+        self.activities = []
+
+    def add_connection(self, city, cost):
+        self.connections[city] = cost
+
+    def add_hotel(self, name, rating, cost):
+        self.hotels.append((name, rating, cost))
+
+    def add_activity(self, name, rating, cost):
+        self.activities.append((name, rating, cost))
+
+def dijkstra(cities, start, end):
+    if start not in cities or end not in cities:
+        return float('inf'), []
+
+    heap = [(0, start, [])]  # cost, city, path
+    visited = set()
+
+    while heap:
+        cost, city_name, path = heapq.heappop(heap)
+        if city_name in visited:
+            continue
+        visited.add(city_name)
+        path = path + [city_name]
+
+        if city_name == end:
+            return cost, path
+
+        for neighbor, weight in cities[city_name].connections.items():
+            if neighbor in cities and neighbor not in visited:
+                heapq.heappush(heap, (cost + weight, neighbor, path))
+
+    return float('inf'), []
+
+def recommend_top(items, budget, top_n=3):
+    filtered = [item for item in items if item[2] <= budget]
+    filtered.sort(key=lambda x: x[1], reverse=True)
+    return filtered[:top_n] if filtered else ["No options within budget"]
+
+def setup_sample_data():
+    cities = {}
+    for name in ['A', 'B', 'C', 'D']:
+        cities[name] = City(name)
+
+    # Connections (make sure all neighbors exist in cities)
+    cities['A'].add_connection('B', 5)
+    cities['A'].add_connection('C', 10)
+    cities['B'].add_connection('C', 3)
+    cities['B'].add_connection('D', 7)
+    cities['C'].add_connection('D', 1)
+
+    # Hotels
+    cities['A'].add_hotel('A_Hotel1', 4.5, 100)
+    cities['A'].add_hotel('A_Hotel2', 4.0, 80)
+    cities['B'].add_hotel('B_Hotel1', 5.0, 120)
+    cities['C'].add_hotel('C_Hotel1', 3.5, 60)
+    cities['D'].add_hotel('D_Hotel1', 4.2, 90)
+
+    # Activities
+    cities['A'].add_activity('A_Museum', 4.7, 20)
+    cities['A'].add_activity('A_Park', 4.2, 10)
+    cities['B'].add_activity('B_Lake', 4.5, 15)
+    cities['C'].add_activity('C_Hike', 4.0, 0)
+    cities['D'].add_activity('D_Beach', 5.0, 25)
+
+    return cities
+
+def travel_planner(cities, start, end, budget):
+    total_cost, path = dijkstra(cities, start, end)
+    if total_cost == float('inf'):
+        print("No path found or invalid city names!")
+        return
+
+    print(f"\nOptimal Path: {' -> '.join(path)} (Total travel cost: {total_cost})\n")
+
+    for city_name in path:
+        city = cities[city_name]
+        top_hotels = recommend_top(city.hotels, budget)
+        top_activities = recommend_top(city.activities, budget)
+        print(f"City: {city_name}")
+        print(f"  Hotels: {top_hotels}")
+        print(f"  Activities: {top_activities}")
+
+if __name__ == "__main__":
+    cities = setup_sample_data()
+    start_city = input("Enter start city (A/B/C/D): ").strip().upper()
+    end_city = input("Enter end city (A/B/C/D): ").strip().upper()
+
+    if start_city not in cities or end_city not in cities:
+        print("Invalid city name! Please choose from A, B, C, D.")
+    else:
+        try:
+            budget = float(input("Enter budget per hotel/activity: "))
+        except:
+            print("Invalid budget input. Using default 100.")
+            budget = 100
+        travel_planner(cities, start_city, end_city, budget)
